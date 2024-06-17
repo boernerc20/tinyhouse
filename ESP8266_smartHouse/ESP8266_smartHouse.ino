@@ -5,11 +5,11 @@
 #include <cstring>
 
 // Configuration files
-#include "config_M1.h" 
-#include "config_M2.h"  
-#include "config_M3.h"  
-#include "config_M4.h"  
-#include "config_M5.h"  
+#include "config_M1.h"
+#include "config_M2.h"
+#include "config_M3.h"
+#include "config_M4.h"
+#include "config_M5.h"
 
 struct Device {
   const char* name;
@@ -47,10 +47,11 @@ Device devices[] = {
 };
 
 const int number_devices = sizeof(devices) / sizeof(Device);
+const int houseNumber = 4; // Example house number
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600); 
+  Serial1.begin(9600); // UART1 is GPIO2 - D4
 
   while (!Serial) {
     ; 
@@ -107,35 +108,29 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   payload[length] = '\0';
   String message = String((char*)payload);
+  String houseNumberStr = String(houseNumber);
 
-  if (strcmp(topic, "tinyhouse_mqtt") == 0) {
-    String allOffCommand =  "all OFF";
-    String allOnCommand = "all ON";
-    if(message == allOffCommand){
-      sendUARTMessage("all", 0);
-    }
-    else if(message == allOnCommand){
-      sendUARTMessage("all", 1);
-    }
-    else{
-      for (int i = 0; i < number_devices; i++) {
-        String offCommand = String(devices[i].name) + " OFF";
-        String onCommand = String(devices[i].name) + " ON";
-        if (message == offCommand) {
-          sendUARTMessage(devices[i].name, 0);
-          break;
-        } 
-        else if (message == onCommand) {
-          sendUARTMessage(devices[i].name, 1);
-          break;
-        }
-      }
-    }
+  // Extract appliance from topic
+  String topicStr = String(topic);
+  int lastSlash = topicStr.lastIndexOf('/');
+  String appliance = topicStr.substring(lastSlash + 1);
+
+  // Construct the command and value from the message
+  String command, value;
+  int spaceIndex = message.indexOf(' ');
+  if (spaceIndex != -1) {
+    command = message.substring(0, spaceIndex);
+    value = message.substring(spaceIndex + 1);
+  } else {
+    command = message;
+    value = "";
   }
+
+  sendUARTMessage(houseNumberStr.c_str(), appliance.c_str(), command.c_str(), value.c_str());
 }
 
-void sendUARTMessage(const char* device, int state) {
-  String msg = "<" + String(device) + "," + String(state) + ">";
+void sendUARTMessage(const char* houseNumber, const char* appliance, const char* command, const char* value) {
+  String msg = "<" + String(houseNumber) + "," + String(appliance) + "," + String(command) + "," + String(value) + ">";
   Serial1.print(msg.c_str()); 
   Serial.println("Sent UART Message: " + msg); 
 }
@@ -145,8 +140,7 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (client.connect("ESP8266Client")) {
       Serial.println("connected");
-      client.subscribe("tinyhouse_mqtt"); 
-      client.subscribe("M4/oven"); 
+      client.subscribe("M4/#"); // Subscribe to all topics under house M4
     } 
     else {
       Serial.print("failed, rc=");

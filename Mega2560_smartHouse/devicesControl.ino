@@ -64,3 +64,14 @@ void  setOrder(const char* deviceName, bool newOrder){
   }
   Serial.println("Device unknown, order not updated.");
 }
+
+void  setConsumption(const char* deviceName, int consumption){
+  //adjust the manual order of a device
+  for(int i=0; i < number_devices; i++){
+    if(deviceName == devices[i].name){
+      devices[i].consumption = consumption;
+      return;
+    }
+  }
+  Serial.println("Device unknown, consumption not updated.");
+}
