@@ -4,50 +4,16 @@
 #include <Arduino.h>
 #include <cstring>
 
-// Configuration files
-#include "config_M1.h"
-#include "config_M2.h"
-#include "config_M3.h"
-#include "config_M4.h"
-#include "config_M5.h"
-
-struct Device {
-  const char* name;
-  float consumption;
-  int pinLED;
-  bool manualControl; 
-  bool manualOrder;   
-  int beginHours[Max_slot];
-  int endHours[Max_slot];
-  int numbSlot; 
-};
-
 // WiFi and MQTT Server details
 const char* ssid = "OpenWrt";
 const char* password = "G2ElabMonitoringHabitat";
 const char* mqtt_server = "192.168.1.192"; 
 const int mqtt_port = 1883; 
 
+int number_houses = 6; // Replace with number of houses connected to broker
+
 WiFiClient espClient;
 PubSubClient client(espClient);
-
-Device devices[] = { 
-  {"oven", 2000, led_oven, 0, 0,{0},{24},1},
-  {"dish", 500, led_dish, 0, 0,{0},{24},1},
-  {"hotplates", 2500, led_hotplates, 0, 0, {12,19},{13,20},2},
-  {"bedroom2",30,led_bedroom2,0,0,{6,20},{8,22},2},
-  {"kitchen",30,led_kitchen,0,0,{6,20},{8,22},2},
-  {"fridge", 100, led_fridge, 0, 0,{0},{24},1},
-  {"washing", 1000, led_washing, 0, 0, {17},{20},1},
-  {"television", 100, led_television, 0, 0,{0},{24},1},
-  {"lounge",30,led_lounge,0,0,{6,20},{8,22},2},
-  {"car",30,led_car,0,0,{6,20},{8,22},2},
-  {"bedside",30,led_bedside,0,0,{6,20},{8,22},2},
-  {"bedroom1",30,led_bedroom1,0,0,{6,20},{8,22},2}
-};
-
-const int number_devices = sizeof(devices) / sizeof(Device);
-const int houseNumber = 4; // Example house number
 
 void setup() {
   Serial.begin(9600);
@@ -55,22 +21,6 @@ void setup() {
 
   while (!Serial) {
     ; 
-  }
-
-  Serial.println("Select configuration file:");
-  Serial.println("1: config_M1");
-  Serial.println("2: config_M2");
-  Serial.println("3: config_M3");
-  Serial.println("4: config_M4");
-  Serial.println("5: config_M5");
-
-  int configSelected = 0;
-  while (configSelected < 1 || configSelected > 5) {
-    if (Serial.available() > 0) {
-      configSelected = Serial.parseInt();
-      Serial.print("Selected configuration: ");
-      Serial.println(configSelected);
-    }
   }
 
   setup_wifi(); 
@@ -108,11 +58,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   payload[length] = '\0';
   String message = String((char*)payload);
-  String houseNumberStr = String(houseNumber);
 
-  // Extract appliance from topic
+  // Extract house number and appliance from topic
   String topicStr = String(topic);
+  int firstSlash = topicStr.indexOf('/');
   int lastSlash = topicStr.lastIndexOf('/');
+  String houseNumber = topicStr.substring(0, firstSlash);
   String appliance = topicStr.substring(lastSlash + 1);
 
   // Construct the command and value from the message
@@ -126,7 +77,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     value = "";
   }
 
-  sendUARTMessage(houseNumberStr.c_str(), appliance.c_str(), command.c_str(), value.c_str());
+  sendUARTMessage(houseNumber.c_str(), appliance.c_str(), command.c_str(), value.c_str());
 }
 
 void sendUARTMessage(const char* houseNumber, const char* appliance, const char* command, const char* value) {
@@ -140,7 +91,10 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (client.connect("ESP8266Client")) {
       Serial.println("connected");
-      client.subscribe("M4/#"); // Subscribe to all topics under house M4
+      for(int i = 0; i <= number_houses; i++){
+        String sub = "M" + String(i) + "/#";
+        client.subscribe(sub.c_str()); 
+      }
     } 
     else {
       Serial.print("failed, rc=");

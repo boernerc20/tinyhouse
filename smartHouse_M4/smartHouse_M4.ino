@@ -1,4 +1,10 @@
-#include "config_M4.h"  // Replace by the number of your house
+/*
+Main program for each smart house
+18/06/2024, Christopher Boerner
+*/ 
+
+#include "config_main.h"
+#include "config_M4.h" // Change to house number
 #include <LiquidCrystal.h>
 #include <Wire.h>
 
@@ -16,33 +22,20 @@ String value = "";
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);  
 
-Device devices[] = {  
-  {"oven", 2000, led_oven, 0, 0,{0},{24},1},
-  {"dish", 500, led_dish, 0, 0,{0},{24},1},
-  {"hotplates", 2500, led_hotplates, 0, 0, {12,19},{13,20},2},
-  {"bedroom2",30,led_bedroom2,0,0,{6,20},{8,22},2},
-  {"kitchen",30,led_kitchen,0,0,{6,20},{8,22},2},
-  {"fridge", 100, led_fridge, 0, 0,{0},{24},1},
-  {"washing", 1000, led_washing, 0, 0, {17},{20},1},
-  {"television", 100, led_television, 0, 0,{0},{24},1},
-  {"lounge",30,led_lounge,0,0,{6,20},{8,22},2},
-  {"car",30,led_car,0,0,{6,20},{8,22},2},
-  {"bedside",30,led_bedside,0,0,{6,20},{8,22},2},
-  {"bedroom1",30,led_bedroom1,0,0,{6,20},{8,22},2}
-};
-
-const int number_devices = sizeof(devices) / sizeof(Device);  
+Device* devices = nullptr;
+int number_devices;
 
 void setup() {
   Serial.begin(9600);  
   Serial1.begin(9600);   
-  Serial.print("Number of devices simulated: ");
-  Serial.println(number_devices);
-  
-  setup_LED();  
+
+  // Change based on house number
+  devices = devices4;
+  number_devices = sizeof(devices4) / sizeof(Device); 
 
   setupLCD();
 
+  setup_LED();  
   for (int i = 0; i < number_devices; i++) {
     setControl(devices[i].name, 1);
   }
@@ -84,12 +77,14 @@ void parseMessage(String msg) {
   appliance = msg.substring(firstComma + 1, secondComma);
   command = msg.substring(secondComma + 1, thirdComma);
   value = msg.substring(thirdComma + 1);
-  
   handleCommand();
 }
 
 void handleCommand() {
-  if (houseNumber != "4") return; // Check if the house number matches
+  if (houseNumber != "M4"){ // Switch house number
+    Serial.println("Bad house number");
+    return;
+  } // Check if the house number matches
   for (int i = 0; i < number_devices; i++) {
     if (appliance.equals(devices[i].name)) {
       if (command.equals("turn")) {
@@ -136,20 +131,6 @@ void loop() {
   processMessage();  
   if (current_time - old_time >= deltaT) {
     globalTime = (globalTime + 1) % 24;
-
-    // int fullManual = 1;
-    // if (fullManual == 1) {
-    //   // Manual operations handled by handleCommand()
-    // } else {
-    //   setOrder("hotplates", digitalRead(CH1));
-    //   setOrder("bedroom1", digitalRead(CH2)); 
-    //   setOrder("washing", digitalRead(CH3));
-    //   setOrder("fridge", digitalRead(CH4)); 
-    //   setOrder("television", digitalRead(CH5));
-    //   setOrder("oven", digitalRead(CH6));
-    //   setOrder("bedroom2", digitalRead(CH7));
-    // }
-
     globalPower = 0;
     powerConsumption();  
 

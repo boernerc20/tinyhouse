@@ -1,3 +1,8 @@
+/*
+Functions for controlling the LCD screen connected to the Arduino Megaa
+18/06/2024, Christopher Boerner
+*/ 
+
 void setupLCD(void){
   lcd.begin(16, 2);
   lcd.print("hello, world!");
@@ -34,5 +39,5 @@ void lcdMessage(void){
   else{
 
   }
-  delay(2000);  
+  delay(3000);  
 }

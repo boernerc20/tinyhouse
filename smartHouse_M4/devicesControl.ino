@@ -2,6 +2,7 @@
 Functions for controlling all the devices in the home
 17/05/2024, Simon-Emmanuel HAIM
 */ 
+
 int choicePin;
 
 void setup_LED(void){
@@ -20,10 +21,6 @@ void powerConsumption(void){
       //Manual mode
       if(devices[i].manualOrder){
         globalPower += devices[i].consumption;
-        // Serial.print("turning ON ");
-        // Serial.print(devices[i].pinLED);
-        // Serial.print(" for ");
-        // Serial.println(devices[i].name);
         digitalWrite(devices[i].pinLED, HIGH);
       }
       else{
