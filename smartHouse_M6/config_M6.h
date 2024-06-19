@@ -22,6 +22,19 @@ Configuration file for project MESH
 #define led_hotplates   32
 #define led_washing     34
 
-Device devices6[] = {};
+Device devices6[] = {  
+  {"oven", 2000, led_oven, 0, 0,{0},{24},1},
+  {"boiler", 500, led_boiler, 0, 0,{0},{24},1},
+  {"hotplates", 2500, led_hotplates, 0, 0, {12,19},{13,20},2},
+  {"bedroom2",30,led_bedroom2,0,0,{6,20},{8,22},2},
+  {"kitchen",30,led_kitchen,0,0,{6,20},{8,22},2},
+  {"fridge", 100, led_fridge, 0, 0,{0},{24},1},
+  {"washing", 1000, led_washing, 0, 0, {17},{20},1},
+  {"television", 100, led_television, 0, 0,{0},{24},1},
+  {"lounge",30,led_lounge,0,0,{6,20},{8,22},2},
+  {"car",30,led_car,0,0,{6,20},{8,22},2},
+  {"bedside",30,led_bedside,0,0,{6,20},{8,22},2},
+  {"bedroom1",30,led_bedroom1,0,0,{6,20},{8,22},2}
+};
 
 #endif

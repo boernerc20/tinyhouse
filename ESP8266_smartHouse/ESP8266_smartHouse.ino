@@ -7,8 +7,8 @@
 // WiFi and MQTT Server details
 const char* ssid = "OpenWrt";
 const char* password = "G2ElabMonitoringHabitat";
-const char* mqtt_server = "192.168.1.192"; 
-const int mqtt_port = 1883; 
+const char* mqtt_server = "192.168.1.192";
+const int mqtt_port = 1883;
 
 int number_houses = 6; // Replace with number of houses connected to broker
 
@@ -19,13 +19,9 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(9600); // UART1 is GPIO2 - D4
 
-  while (!Serial) {
-    ; 
-  }
-
-  setup_wifi(); 
-  client.setServer(mqtt_server, mqtt_port); 
-  client.setCallback(callback); 
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
 }
 
 void setup_wifi() {
@@ -82,21 +78,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void sendUARTMessage(const char* houseNumber, const char* appliance, const char* command, const char* value) {
   String msg = "<" + String(houseNumber) + "," + String(appliance) + "," + String(command) + "," + String(value) + ">";
-  Serial1.print(msg.c_str()); 
-  Serial.println("Sent UART Message: " + msg); 
+  Serial1.print(msg.c_str());
+  Serial.println("Sent UART Message: " + msg);
 }
 
 void reconnect() {
+  // Create a unique client ID based on the MAC address
+  String clientId = "ESP8266Client-" + String(WiFi.macAddress());
+
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("ESP8266Client")) {
+    if (client.connect(clientId.c_str())) {
       Serial.println("connected");
-      for(int i = 0; i <= number_houses; i++){
+      for (int i = 1; i <= number_houses; i++) {
         String sub = "M" + String(i) + "/#";
-        client.subscribe(sub.c_str()); 
+        client.subscribe(sub.c_str());
       }
-    } 
-    else {
+    } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
