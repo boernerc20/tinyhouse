@@ -15,10 +15,14 @@ bool receivingMessage = false;
 float globalPower;  
 unsigned long old_time, current_time;     
 int globalTime = 0;
+byte packet = 0;
+
 String houseNumber = "";
 String appliance = "";
 String command = "";
 String value = "";
+
+int control = 1; // Change between 1 - manualWired, 2 - manualWireless, 3 - automatic
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);  
 
@@ -29,108 +33,86 @@ void setup() {
   Serial.begin(9600);  
   Serial1.begin(9600);   
 
+  Serial.println("Select mode for house:");
+  Serial.println("1: Manual Wired Mode");
+  Serial.println("2: Manual Wireless Mode");
+  Serial.println("3: Automatic Mode");
+
+  // while (control < 1 || control > 3) {
+  //   if (Serial.available() > 0) {
+  //     control = Serial.parseInt();
+  //     Serial.print("Selected mode: ");
+  //     Serial.println(control);
+  //   }
+  // }
+
   // Change based on house number
   devices = devices4;
   number_devices = sizeof(devices4) / sizeof(Device); 
+  Serial.print("Number of devices simulated : ");
+  Serial.println(number_devices);
 
   setupLCD();
 
-  setup_LED();  
-  for (int i = 0; i < number_devices; i++) {
-    setControl(devices[i].name, 1);
+  setup_LED(); 
+  pinMode(CH1,INPUT);
+  pinMode(CH2,INPUT);
+  pinMode(CH3,INPUT);
+  pinMode(CH4,INPUT);
+  pinMode(CH5,INPUT);
+  pinMode(CH6,INPUT);
+  pinMode(CH7,INPUT); 
+
+  if(control == 1 || control == 2){
+    for (int i = 0; i < number_devices; i++) {
+      setControl(devices[i].name, 1);
+    }
   }
   old_time = millis();
-}
-
-void receiveEvent() {
-  while (Serial1.available() > 0) {
-    char c = Serial1.read();
-    if (c == '<') {
-      message = "";
-      receivingMessage = true;
-    } else if (c == '>') {
-      receivingMessage = false;
-      messageReceived = true;
-    } else if (receivingMessage) {
-      message += c;
-    }
-  }
-}
-
-void processMessage() {
-  if (messageReceived) {
-    messageReceived = false;
-    Serial.println("Received message: " + message);
-    parseMessage(message);  
-    message = "";  
-  }
-}
-
-void parseMessage(String msg) {
-  int firstComma = msg.indexOf(',');
-  int secondComma = msg.indexOf(',', firstComma + 1);
-  int thirdComma = msg.indexOf(',', secondComma + 1);
-  
-  if (firstComma == -1 || secondComma == -1 || thirdComma == -1) return; 
-
-  houseNumber = msg.substring(0, firstComma);
-  appliance = msg.substring(firstComma + 1, secondComma);
-  command = msg.substring(secondComma + 1, thirdComma);
-  value = msg.substring(thirdComma + 1);
-  handleCommand();
-}
-
-void handleCommand() {
-  if (houseNumber != "M4"){ // Switch house number
-    Serial.println("Bad house number");
-    return;
-  } // Check if the house number matches
-  for (int i = 0; i < number_devices; i++) {
-    if (appliance.equals(devices[i].name)) {
-      if (command.equals("turn")) {
-        int state = value.equals("ON") ? 1 : 0;
-        setOrder(devices[i].name, state);
-        Serial.print("Turn ");
-        Serial.print(devices[i].name);
-        Serial.print(state ? " ON" : " OFF");
-        Serial.println();
-        lcdMessage();
-      } 
-      else if (command.equals("set")) {
-        int consumption = value.toInt();
-        // Here you can implement the functionality to set the wattage
-        setConsumption(devices[i].name, consumption);
-        Serial.print("Set ");
-        Serial.print(devices[i].name);
-        Serial.print(" to ");
-        Serial.print(consumption);
-        Serial.println("W");
-        lcdMessage();
-      }
-      break;
-    }
-  }
-  if(appliance.equals("all")){
-      if (command.equals("turn")) {
-      int state = value.equals("ON") ? 1 : 0;
-      for (int i = 0; i < number_devices; i++) {
-        setOrder(devices[i].name, state);
-      }
-      Serial.print("Turn ");
-      Serial.print("all");
-      Serial.print(state ? " ON" : " OFF");
-      Serial.println();
-    } 
-  }
 }
 
 void loop() {
   current_time = millis(); 
 
-  receiveEvent(); 
-  processMessage();  
   if (current_time - old_time >= deltaT) {
     globalTime = (globalTime + 1) % 24;
+
+    if(control == 1){
+      setOrder("washing",digitalRead(CH1));  
+      setOrder("hotplates",digitalRead(CH2)); 
+      setOrder("bedroom1",digitalRead(CH3));
+      setOrder("television",digitalRead(CH4));
+      setOrder("oven",digitalRead(CH5));
+      setOrder("bedroom2",digitalRead(CH7)); 
+
+      packet = 0;
+
+      packet |= (digitalRead(CH1) << 0);
+      packet |= (digitalRead(CH2) << 1);
+      packet |= (digitalRead(CH3) << 2);
+      packet |= (digitalRead(CH4) << 3);
+      packet |= (digitalRead(CH5) << 4);
+      packet |= (digitalRead(CH6) << 5);
+      packet |= (digitalRead(CH7) << 6);
+
+      // Print packet for debugging
+      Serial.print("Packed data: ");
+      for (int i = 7; i >= 0; i--) {
+        Serial.print((packet >> i) & 1);
+      }
+      Serial.println();
+
+      // Send packet over UART
+      Serial1.write(packet);
+    }
+    else if(control == 2){
+      receiveEvent(); 
+      processMessage();
+    }
+    else if(control == 3){
+      Serial.println("Auto");
+    }
+
     globalPower = 0;
     powerConsumption();  
 

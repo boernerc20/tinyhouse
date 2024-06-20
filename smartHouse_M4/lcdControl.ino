@@ -5,8 +5,11 @@ Functions for controlling the LCD screen connected to the Arduino Megaa
 
 void setupLCD(void){
   lcd.begin(16, 2);
-  lcd.print("hello, world!");
-  delay(1000);  
+  lcd.print("Number of");
+  lcd.setCursor(0, 1);
+  lcd.print("Devices: ");
+  lcd.print((int)number_devices);
+  delay(2000);  
   lcd.clear();
 }
 
@@ -39,5 +42,5 @@ void lcdMessage(void){
   else{
 
   }
-  delay(3000);  
+  delay(2000);  
 }

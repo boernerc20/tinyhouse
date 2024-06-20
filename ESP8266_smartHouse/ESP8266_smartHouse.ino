@@ -12,12 +12,19 @@ const int mqtt_port = 1883;
 
 int number_houses = 6; // Replace with number of houses connected to broker
 
+byte packet = 0;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600); // UART1 is GPIO2 - D4
+  // Serial1.begin(9600); // UART1 is GPIO2 - D4
+  /*
+ * Start serial on UART0, then swap to the alternate pins, so they're now GPIO15(D8,TX) and GPIO13(D7,RX)
+ */
+  // Serial.begin(9600);
+  // Serial.swap(); 
 
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
@@ -44,6 +51,13 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
+  String topicStr = String(topic);
+
+  // Ignore messages from M4/channels
+  if (topicStr.equals("M4/channels")) {
+    return;
+  }
+
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -56,7 +70,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   String message = String((char*)payload);
 
   // Extract house number and appliance from topic
-  String topicStr = String(topic);
   int firstSlash = topicStr.indexOf('/');
   int lastSlash = topicStr.lastIndexOf('/');
   String houseNumber = topicStr.substring(0, firstSlash);
@@ -78,7 +91,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void sendUARTMessage(const char* houseNumber, const char* appliance, const char* command, const char* value) {
   String msg = "<" + String(houseNumber) + "," + String(appliance) + "," + String(command) + "," + String(value) + ">";
-  Serial1.print(msg.c_str());
+  Serial.swap();
+  Serial.print(msg.c_str());
+  Serial.swap();
   Serial.println("Sent UART Message: " + msg);
 }
 
@@ -103,9 +118,32 @@ void reconnect() {
   }
 }
 
+void receiveEvent() {
+  if (Serial.available() > 0) {
+    Serial.swap(); // Swap to UART for Mega communication
+    packet = Serial.read();
+    Serial.swap(); // Swap back to default serial for debug
+
+    // Convert packet to binary string
+    String binaryString = "";
+    for (int i = 7; i >= 0; i--) {
+      binaryString += String((packet >> i) & 1);
+    }
+    binaryString = "CH8-CH1 Packet:" + binaryString;
+
+    // Print packet for debugging
+    Serial.println(binaryString);
+
+    // Publish the binary string packet to the MQTT broker
+    String topic = "M4/channels";
+    client.publish(topic.c_str(), binaryString.c_str());
+  }
+}
+
 void loop() {
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
+  receiveEvent();
 }
