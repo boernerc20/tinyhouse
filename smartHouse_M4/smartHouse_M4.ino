@@ -22,7 +22,7 @@ String appliance = "";
 String command = "";
 String value = "";
 
-int control = 0; // Change between 1 - manualWired, 2 - manualWireless, 3 - automatic
+int control = 1; // Change between 1 - manualWired, 2 - manualWireless, 3 - automatic
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);  
 
@@ -38,13 +38,13 @@ void setup() {
   Serial.println("2: Manual Wireless Mode");
   Serial.println("3: Automatic Mode");
 
-  while (control < 1 || control > 3) {
-    if (Serial.available() > 0) {
-      control = Serial.parseInt();
-      Serial.print("Selected mode: ");
-      Serial.println(control);
-    }
-  }
+  // while (control < 1 || control > 3) {
+  //   if (Serial.available() > 0) {
+  //     control = Serial.parseInt();
+  //     Serial.print("Selected mode: ");
+  //     Serial.println(control);
+  //   }
+  // }
 
   // Change based on house number
   devices = devices4;
