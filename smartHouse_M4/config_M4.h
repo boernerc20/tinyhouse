@@ -20,7 +20,7 @@ Configuration file for project MESH
 #define led_lounge      30
 #define led_car         31
 #define led_bedside     32
-#define led_bedroom1    34
+#define led_bedroom1    34  
 
 Device devices4[] = {  
   {"oven", 2000, led_oven, 0, 0,{0},{24},1},
