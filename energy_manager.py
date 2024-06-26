@@ -1,3 +1,9 @@
+##########################################################################
+# File name: energy_manager.py                                           #
+# Author: Christopher Boerner                                            #
+# Description: Script to manage PV and house consumption on raspberry pi #
+##########################################################################
+
 import paho.mqtt.client as mqtt
 import time
 import re
@@ -23,6 +29,7 @@ appliance_power = {
         # Define appliances for house M3
     },
     "M4": {
+        # Define appliances for house M4
         "oven": 2000,
         "dish": 500,
         "hotplates": 2500,
@@ -40,6 +47,7 @@ appliance_power = {
         # Define appliances for house M5
     },
     "M6": {
+        # Define appliances for house M6
         "oven": 2000,
         "boiler": 500,
         "hotplates": 2500,
@@ -84,20 +92,24 @@ def on_message(client, userdata, msg):
             command = data[0].strip()  # Extract and strip any whitespace from the command
             value = data[1].strip()  # Extract and strip any whitespace from the value
 
+            # For all devices
             if appliance == "all":
+                # Turn ON/OFF command
                 if command == "turn":
-                    state = value == "ON"
-                    for appl, power in appliance_power[house_number].items():
-                        if state and not appliance_state[house_number][appl]:
-                            house_consumption[house_number] += power
-                            appliance_state[house_number][appl] = True
-                        elif not state and appliance_state[house_number][appl]:
-                            house_consumption[house_number] = max(house_consumption[house_number] - power, 0)
-                            appliance_state[house_number][appl] = False
+                    state = value == "ON"  # Determine if the command is to turn on (True) or off (False)
+                    for appl, power in appliance_power[house_number].items():   # Iterate over each appliance and its power rating
+                        if state and not appliance_state[house_number][appl]:   # If turning on and appliance is currently off
+                            house_consumption[house_number] += power            # Add the appliance's power to house consumption
+                            appliance_state[house_number][appl] = True          # Mark appliance as on
+                        elif not state and appliance_state[house_number][appl]: # If turning off and appliance is currently on
+                            house_consumption[house_number] = max(house_consumption[house_number] - power, 0)  # Subtract the appliance's power, ensuring no negative consumption
+                            appliance_state[house_number][appl] = False         # Mark appliance as off
                     print(f"Turn all appliances {value}")
             else:
+                # Turn ON/OFF command
                 if command == "turn":
                     state = value == "ON"
+                    # Logic for turning ON/OFF appliances set up as done before
                     if state and not appliance_state[house_number][appliance]:
                         house_consumption[house_number] += appliance_power[house_number].get(appliance, 0)
                         appliance_state[house_number][appliance] = True
@@ -105,6 +117,7 @@ def on_message(client, userdata, msg):
                         house_consumption[house_number] = max(house_consumption[house_number] - appliance_power[house_number].get(appliance, 0), 0)
                         appliance_state[house_number][appliance] = False
                     print(f"Turn {appliance} {value}")
+                # Set command
                 elif command == "set":
                     wattage = int(value)
                     # Adjust house consumption only if the appliance is currently on
@@ -132,10 +145,12 @@ client.on_message = on_message
 client.connect(BROKER)
 client.loop_start()
 
+# Subscribe to all house topics and PV production topic
 client.subscribe(PV_TOPIC)
 for i in range(1, NUM_HOUSES + 1):
     client.subscribe(f"{HOUSE_TOPIC_BASE}{i}/#")
 
+# Keep script running while reducing CPU usage
 try:
     while True:
         time.sleep(1)
