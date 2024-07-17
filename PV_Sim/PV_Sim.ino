@@ -4,6 +4,8 @@
 // WiFi and MQTT Server details
 const char* ssid = "OpenWrt";
 const char* password = "G2ElabMonitoringHabitat";
+// const char* ssid = "OpenWrt_5G";
+// const char* password = "openwrt2022";
 const char* mqtt_server = "192.168.1.192";
 const int mqtt_port = 1883;
 
